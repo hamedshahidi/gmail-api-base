@@ -93,3 +93,92 @@ def validate_migration_plan_data(data: dict) -> list[dict]:
         )
 
     return cleaned_migrations
+
+
+def validate_rules_plan_data(data: dict) -> list[dict]:
+    """Validate rules plan data and return cleaned rule entries."""
+    if "rules" not in data:
+        raise ValueError("Rules plan must contain a top-level 'rules' key.")
+
+    rules = data["rules"]
+    if not isinstance(rules, list):
+        raise ValueError("Rules plan 'rules' must be a list.")
+
+    cleaned_rules: list[dict] = []
+    seen_rule_names: set[str] = set()
+
+    for index, rule in enumerate(rules):
+        if not isinstance(rule, dict):
+            raise ValueError(f"Rule at index {index} must be an object.")
+
+        if "name" not in rule:
+            raise ValueError(f"Rule at index {index} must contain 'name'.")
+        if "query" not in rule:
+            raise ValueError(f"Rule at index {index} must contain 'query'.")
+        if "actions" not in rule:
+            raise ValueError(f"Rule at index {index} must contain 'actions'.")
+
+        name = rule["name"]
+        query = rule["query"]
+        actions = rule["actions"]
+
+        if not isinstance(name, str):
+            raise ValueError(f"Rule name at index {index} must be a string.")
+        cleaned_name = name.strip()
+        if not cleaned_name:
+            raise ValueError(f"Rule name at index {index} must be non-empty.")
+        if cleaned_name in seen_rule_names:
+            raise ValueError(f"Duplicate rule name found: {cleaned_name}")
+
+        if not isinstance(query, str):
+            raise ValueError(f"Rule query for '{cleaned_name}' must be a string.")
+        cleaned_query = query.strip()
+        if not cleaned_query:
+            raise ValueError(f"Rule query for '{cleaned_name}' must be non-empty.")
+
+        if not isinstance(actions, dict):
+            raise ValueError(f"Rule actions for '{cleaned_name}' must be an object.")
+
+        add_labels: list[str] = []
+        archive = False
+
+        if "add_labels" in actions:
+            raw_add_labels = actions["add_labels"]
+            if not isinstance(raw_add_labels, list):
+                raise ValueError(f"Rule add_labels for '{cleaned_name}' must be a list.")
+
+            for label_index, label_name in enumerate(raw_add_labels):
+                if not isinstance(label_name, str):
+                    raise ValueError(
+                        f"Rule add_labels item at index {label_index} for '{cleaned_name}' must be a string."
+                    )
+
+                cleaned_label_name = label_name.strip()
+                if not cleaned_label_name:
+                    raise ValueError(
+                        f"Rule add_labels item at index {label_index} for '{cleaned_name}' must be non-empty."
+                    )
+
+                add_labels.append(cleaned_label_name)
+
+        if "archive" in actions:
+            archive = actions["archive"]
+            if not isinstance(archive, bool):
+                raise ValueError(f"Rule archive value for '{cleaned_name}' must be a boolean.")
+
+        if not add_labels and not archive:
+            raise ValueError(f"Rule '{cleaned_name}' must define at least one action.")
+
+        seen_rule_names.add(cleaned_name)
+        cleaned_rules.append(
+            {
+                "name": cleaned_name,
+                "query": cleaned_query,
+                "actions": {
+                    "add_labels": add_labels,
+                    "archive": archive,
+                },
+            }
+        )
+
+    return cleaned_rules

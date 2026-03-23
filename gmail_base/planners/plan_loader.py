@@ -8,6 +8,7 @@ from pathlib import Path
 from gmail_base.planners.plan_validator import (
     validate_label_plan_data,
     validate_migration_plan_data,
+    validate_rules_plan_data,
 )
 
 
@@ -41,3 +42,9 @@ def load_migration_plan(path: str) -> list[dict]:
     """Load and validate migration entries from a migration plan file."""
     data = load_json_file(path)
     return validate_migration_plan_data(data)
+
+
+def load_rules_plan(path: str) -> list[dict]:
+    """Load and validate rule entries from a rules plan file."""
+    data = load_json_file(path)
+    return validate_rules_plan_data(data)

@@ -23,6 +23,7 @@ gmail-api-base/
       plan_validator.py
       label_plan_executor.py
       migration_plan_executor.py
+      rules_plan_executor.py
     services/
       label_management_service.py
       label_service.py
@@ -34,7 +35,9 @@ gmail-api-base/
     gmail_organization/
       labels.json
       migrations.json
+      rules.json
   scripts/
+    apply_rules_from_plan.py
     create_labels_from_plan.py
     migrate_labels_from_plan.py
     list_labels.py
@@ -55,6 +58,8 @@ gmail-api-base/
 - `plans/` contains machine-readable execution inputs.
 - `output/` contains generated files.
 - Message updates use Gmail batch modify for migration efficiency.
+- Plans now include labels, migrations, and rules.
+- Rules are generic query-driven automations.
 
 ## Plan-Driven Approach
 
@@ -63,6 +68,7 @@ gmail-api-base/
 - `scripts/` execute plans through reusable modules.
 - The current machine-readable plan format is JSON.
 - YAML may be added later without changing the overall architecture.
+- Rules plans let the project apply generic query-based Gmail automations.
 
 ## Setup Overview
 
@@ -149,6 +155,10 @@ python scripts/migrate_labels_from_plan.py
 python scripts/migrate_labels_from_plan.py plans/gmail_organization/migrations.json
 python scripts/migrate_labels_from_plan.py --apply
 python scripts/migrate_labels_from_plan.py plans/gmail_organization/migrations.json --apply
+python scripts/apply_rules_from_plan.py
+python scripts/apply_rules_from_plan.py --apply
+python scripts/apply_rules_from_plan.py --apply --verbose
+python scripts/apply_rules_from_plan.py plans/gmail_organization/rules.json --apply --verbose
 ```
 
 Or use the helper runner:
@@ -160,6 +170,9 @@ Or use the helper runner:
 ./run.sh scripts/create_labels_from_plan.py plans/gmail_organization/labels.json
 ./run.sh scripts/migrate_labels_from_plan.py
 ./run.sh scripts/migrate_labels_from_plan.py --apply
+./run.sh scripts/apply_rules_from_plan.py
+./run.sh scripts/apply_rules_from_plan.py --apply
+./run.sh scripts/apply_rules_from_plan.py --apply --verbose
 ```
 
 If no argument is passed, `./run.sh` still runs `python main.py`.
@@ -210,6 +223,22 @@ Or:
 - Migrations are executed in batches for better performance.
 - Long migrations may still take some time depending on Gmail API response time and mailbox size.
 
+## Rules Engine
+
+- Rules are defined in `plans/gmail_organization/rules.json`.
+- Preview mode: `python scripts/apply_rules_from_plan.py`
+- Apply mode: `python scripts/apply_rules_from_plan.py --apply`
+- Verbose mode: `python scripts/apply_rules_from_plan.py --apply --verbose`
+- Custom path: `python scripts/apply_rules_from_plan.py plans/gmail_organization/rules.json`
+- Custom path with apply and verbose: `python scripts/apply_rules_from_plan.py plans/gmail_organization/rules.json --apply --verbose`
+- Equivalent `run.sh` preview: `./run.sh scripts/apply_rules_from_plan.py`
+- Equivalent `run.sh` apply: `./run.sh scripts/apply_rules_from_plan.py --apply`
+- Equivalent `run.sh` apply with verbose: `./run.sh scripts/apply_rules_from_plan.py --apply --verbose`
+- Preview is the safe default.
+- Rules can add labels and optionally archive matching messages.
+- Archive means removing the `INBOX` label, not deleting messages.
+- Rules are processed in batches for performance.
+
 ## Helper Scripts
 
 - `setup_and_run.sh` handles first-time setup or reinstalling dependencies.
@@ -225,6 +254,7 @@ chmod +x run.sh setup_and_run.sh
 ./run.sh scripts/export_labels.py
 ./run.sh scripts/create_labels_from_plan.py
 ./run.sh scripts/migrate_labels_from_plan.py
+./run.sh scripts/apply_rules_from_plan.py
 ```
 
 ## Browser Behavior

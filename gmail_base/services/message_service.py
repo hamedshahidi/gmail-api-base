@@ -74,3 +74,31 @@ def add_labels_to_messages(
         updated_count += len(message_id_chunk)
 
     return updated_count
+
+
+def archive_messages(
+    message_ids: list[str],
+    batch_size: int = 1000,
+    verbose: bool = False,
+) -> int:
+    """Archive messages in batches by removing only the INBOX label."""
+    if not message_ids:
+        return 0
+
+    service = get_gmail_service()
+    archived_count = 0
+
+    for message_id_chunk in chunk_list(message_ids, batch_size):
+        if verbose:
+            print(f"Processing archive batch of {len(message_id_chunk)} messages...", flush=True)
+
+        service.users().messages().batchModify(
+            userId="me",
+            body={
+                "ids": message_id_chunk,
+                "removeLabelIds": ["INBOX"],
+            },
+        ).execute()
+        archived_count += len(message_id_chunk)
+
+    return archived_count

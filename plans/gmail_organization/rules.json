@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+        "name": "archive-subscriptions-newsletters",
+        "query": "label:\"Subscriptions/Newsletters\" in:inbox",
+        "actions": {
+            "archive": true
+        }
+    }
+  ]
+}
