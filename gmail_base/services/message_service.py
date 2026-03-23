@@ -2,7 +2,18 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from gmail_base.service import get_gmail_service
+
+
+def chunk_list(items: list[str], size: int) -> Iterator[list[str]]:
+    """Yield successive chunks from a list of strings."""
+    if size <= 0:
+        raise ValueError("Chunk size must be greater than zero.")
+
+    for index in range(0, len(items), size):
+        yield items[index : index + size]
 
 
 def search_message_ids(query: str) -> list[str]:
@@ -36,18 +47,30 @@ def get_label_name_to_id_map() -> dict[str, str]:
     return {label["name"]: label["id"] for label in labels if "name" in label and "id" in label}
 
 
-def add_labels_to_messages(message_ids: list[str], label_ids: list[str]) -> int:
-    """Add the provided labels to each message and return the number updated."""
+def add_labels_to_messages(
+    message_ids: list[str],
+    label_ids: list[str],
+    batch_size: int = 1000,
+    verbose: bool = False,
+) -> int:
+    """Add the provided labels to messages in batches and return the number submitted."""
     if not message_ids:
         return 0
 
     service = get_gmail_service()
+    updated_count = 0
 
-    for message_id in message_ids:
-        service.users().messages().modify(
+    for message_id_chunk in chunk_list(message_ids, batch_size):
+        if verbose:
+            print(f"Processing batch of {len(message_id_chunk)} messages...", flush=True)
+
+        service.users().messages().batchModify(
             userId="me",
-            id=message_id,
-            body={"addLabelIds": label_ids},
+            body={
+                "ids": message_id_chunk,
+                "addLabelIds": label_ids,
+            },
         ).execute()
+        updated_count += len(message_id_chunk)
 
-    return len(message_ids)
+    return updated_count

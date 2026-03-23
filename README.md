@@ -54,6 +54,7 @@ gmail-api-base/
 - `docs/` contains human-readable strategy and development docs.
 - `plans/` contains machine-readable execution inputs.
 - `output/` contains generated files.
+- Message updates use Gmail batch modify for migration efficiency.
 
 ## Plan-Driven Approach
 
@@ -192,6 +193,7 @@ Or:
 
 - `python scripts/list_labels.py` still lists labels.
 - `python scripts/export_labels.py` still exports labels to `output/labels.txt`.
+- Migration message updates use Gmail batch modify for better efficiency.
 
 ## Migration Plans
 
@@ -205,6 +207,8 @@ Or:
 - Preview is the safe default.
 - Apply mode only adds new labels.
 - Old labels are not removed in Phase 2.
+- Migrations are executed in batches for better performance.
+- Long migrations may still take some time depending on Gmail API response time and mailbox size.
 
 ## Helper Scripts
 

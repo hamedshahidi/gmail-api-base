@@ -30,7 +30,7 @@ def preview_label_migrations(plan_path: str) -> list[dict]:
     return results
 
 
-def apply_label_migrations(plan_path: str) -> list[dict]:
+def apply_label_migrations(plan_path: str, verbose: bool = False) -> list[dict]:
     """Apply label migrations by adding new labels to matching messages."""
     migrations = load_migration_plan(plan_path)
     label_name_to_id = get_label_name_to_id_map()
@@ -49,7 +49,17 @@ def apply_label_migrations(plan_path: str) -> list[dict]:
 
         message_ids = search_message_ids(f'label:"{old_label}"')
         label_ids = [label_name_to_id[label_name] for label_name in new_labels]
-        updated_count = add_labels_to_messages(message_ids, label_ids)
+        target_labels = ", ".join(new_labels)
+        print(f"Applying migration: {old_label}")
+        print(f"Matching messages: {len(message_ids)}")
+        print(f"Target labels: {target_labels}")
+        updated_count = add_labels_to_messages(
+            message_ids,
+            label_ids,
+            verbose=verbose,
+        )
+        print(f"Updated messages: {updated_count}")
+        print()
         results.append(
             {
                 "old_label": old_label,

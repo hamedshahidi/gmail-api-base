@@ -17,21 +17,26 @@ DEFAULT_PLAN_PATH = "plans/gmail_organization/migrations.json"
 
 def main() -> None:
     """Run label migration preview by default or apply changes with --apply."""
-    apply_mode = False
-    plan_path = DEFAULT_PLAN_PATH
+    args = sys.argv[1:]
 
-    for argument in sys.argv[1:]:
-        if argument == "--apply":
+    plan_path = DEFAULT_PLAN_PATH
+    apply_mode = False
+    verbose = False
+
+    for arg in args:
+        if arg == "--apply":
             apply_mode = True
+        elif arg == "--verbose":
+            verbose = True
         else:
-            plan_path = argument
+            plan_path = arg
 
     if apply_mode:
-        results = apply_label_migrations(plan_path)
+        results = apply_label_migrations(plan_path, verbose=verbose)
         total_matched_messages = sum(result["match_count"] for result in results)
         total_updated_messages = sum(result["updated_count"] for result in results)
 
-        print("Apply mode")
+        print("Mode: APPLY")
         print()
         for result in results:
             new_labels = ", ".join(result["new_labels"])
@@ -49,7 +54,7 @@ def main() -> None:
     results = preview_label_migrations(plan_path)
     total_matched_messages = sum(result["match_count"] for result in results)
 
-    print("Preview mode")
+    print("Mode: PREVIEW")
     print()
     for result in results:
         new_labels = ", ".join(result["new_labels"])
