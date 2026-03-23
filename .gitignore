@@ -1,14 +1,43 @@
+# =========================
+# Credentials and secrets
+# =========================
+token.json
+credentials.json
+
+# =========================
+# Environment variables
+# =========================
+.env
+env/
+
+# =========================
+# Python cache and bytecode
+# =========================
 __pycache__/
 *.py[cod]
 *.pyo
+
+# =========================
+# Virtual environments
+# =========================
 .venv/
 venv/
-env/
+
+# =========================
+# Testing and type checking
+# =========================
 .pytest_cache/
 .mypy_cache/
 .coverage
+
+# =========================
+# Build and distribution
+# =========================
 dist/
 build/
 *.egg-info/
-.env
+
+# =========================
+# Editor and IDE settings
+# =========================
 .vscode/
