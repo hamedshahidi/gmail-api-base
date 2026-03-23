@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from gmail_base.planners.plan_validator import validate_label_plan_data
+from gmail_base.planners.plan_validator import (
+    validate_label_plan_data,
+    validate_migration_plan_data,
+)
 
 
 def load_json_file(path: str) -> dict:
@@ -33,3 +36,8 @@ def load_label_plan(path: str) -> list[str]:
     data = load_json_file(path)
     return validate_label_plan_data(data)
 
+
+def load_migration_plan(path: str) -> list[dict]:
+    """Load and validate migration entries from a migration plan file."""
+    data = load_json_file(path)
+    return validate_migration_plan_data(data)

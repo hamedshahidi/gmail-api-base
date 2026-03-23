@@ -1,0 +1,24 @@
+{
+  "migrations": [
+    {
+      "old_label": "visa",
+      "new_labels": ["Travel/Documents"]
+    },
+    {
+      "old_label": "Kuitti",
+      "new_labels": ["Finance/Receipts"]
+    },
+    {
+      "old_label": "luotto laina",
+      "new_labels": ["Finance/Loans"]
+    },
+    {
+      "old_label": "keikkaraportit",
+      "new_labels": ["Business/Reports"]
+    },
+    {
+      "old_label": "Wine&Food",
+      "new_labels": ["Subscriptions/Newsletters"]
+    }
+  ]
+}

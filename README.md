@@ -22,17 +22,21 @@ gmail-api-base/
       plan_loader.py
       plan_validator.py
       label_plan_executor.py
+      migration_plan_executor.py
     services/
       label_management_service.py
       label_service.py
+      message_service.py
   docs/
     gmail-organization-plan.md
     development-plan.md
   plans/
     gmail_organization/
       labels.json
+      migrations.json
   scripts/
     create_labels_from_plan.py
+    migrate_labels_from_plan.py
     list_labels.py
     export_labels.py
   output/
@@ -140,6 +144,10 @@ python scripts/list_labels.py
 python scripts/export_labels.py
 python scripts/create_labels_from_plan.py
 python scripts/create_labels_from_plan.py plans/gmail_organization/labels.json
+python scripts/migrate_labels_from_plan.py
+python scripts/migrate_labels_from_plan.py plans/gmail_organization/migrations.json
+python scripts/migrate_labels_from_plan.py --apply
+python scripts/migrate_labels_from_plan.py plans/gmail_organization/migrations.json --apply
 ```
 
 Or use the helper runner:
@@ -149,6 +157,8 @@ Or use the helper runner:
 ./run.sh scripts/export_labels.py
 ./run.sh scripts/create_labels_from_plan.py
 ./run.sh scripts/create_labels_from_plan.py plans/gmail_organization/labels.json
+./run.sh scripts/migrate_labels_from_plan.py
+./run.sh scripts/migrate_labels_from_plan.py --apply
 ```
 
 If no argument is passed, `./run.sh` still runs `python main.py`.
@@ -183,6 +193,19 @@ Or:
 - `python scripts/list_labels.py` still lists labels.
 - `python scripts/export_labels.py` still exports labels to `output/labels.txt`.
 
+## Migration Plans
+
+- Migrations are defined in `plans/gmail_organization/migrations.json`.
+- Preview mode: `python scripts/migrate_labels_from_plan.py`
+- Apply mode: `python scripts/migrate_labels_from_plan.py --apply`
+- Custom path: `python scripts/migrate_labels_from_plan.py plans/gmail_organization/migrations.json`
+- Custom path with apply: `python scripts/migrate_labels_from_plan.py plans/gmail_organization/migrations.json --apply`
+- Equivalent `run.sh` preview: `./run.sh scripts/migrate_labels_from_plan.py`
+- Equivalent `run.sh` apply: `./run.sh scripts/migrate_labels_from_plan.py --apply`
+- Preview is the safe default.
+- Apply mode only adds new labels.
+- Old labels are not removed in Phase 2.
+
 ## Helper Scripts
 
 - `setup_and_run.sh` handles first-time setup or reinstalling dependencies.
@@ -197,6 +220,7 @@ chmod +x run.sh setup_and_run.sh
 ./run.sh scripts/list_labels.py
 ./run.sh scripts/export_labels.py
 ./run.sh scripts/create_labels_from_plan.py
+./run.sh scripts/migrate_labels_from_plan.py
 ```
 
 ## Browser Behavior
