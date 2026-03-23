@@ -18,6 +18,7 @@
     "Personal/Organizations",
     "Personal/Documents",
     "Travel",
+    "Travel/Documents",
     "Travel/Flights",
     "Travel/Reservations",
     "Shopping",
@@ -29,9 +30,9 @@
     "Subscriptions/Newsletters",
     "Subscriptions/Promotions",
     "Subscriptions/Forums",
-    "Archive",
-    "Archive/Old Employers",
-    "Archive/Old Business",
-    "Archive/Misc"
+    "Reference",
+    "Reference/Old Employers",
+    "Reference/Old Business",
+    "Reference/Misc"
   ]
 }

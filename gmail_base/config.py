@@ -1,6 +1,6 @@
 """Configuration values for Gmail API authentication."""
 
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
 CREDENTIALS_FILE = "credentials.json"
 TOKEN_FILE = "token.json"
 # None means use normal/default handling.

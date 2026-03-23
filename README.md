@@ -91,7 +91,7 @@ Important:
 
 ## OAuth Scope
 
-This project uses `https://www.googleapis.com/auth/gmail.readonly`.
+This project uses `https://www.googleapis.com/auth/gmail.modify`.
 
 If you change scopes:
 
