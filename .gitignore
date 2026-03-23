@@ -41,3 +41,9 @@ build/
 # Editor and IDE settings
 # =========================
 .vscode/
+
+# =========================
+# Project generated files
+# =========================
+output/*
+!output/.gitkeep

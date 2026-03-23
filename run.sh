@@ -8,4 +8,9 @@ if [ ! -d ".venv" ]; then
 fi
 
 source .venv/Scripts/activate
-python main.py
+
+if [ "$#" -eq 0 ]; then
+  python main.py
+else
+  python "$@"
+fi
