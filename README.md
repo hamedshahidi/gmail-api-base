@@ -32,6 +32,7 @@ gmail-api-base/
   docs/
     gmail-organization-plan.md
     development-plan.md
+    ai-development-workflow.md
   plans/
     gmail_organization/
       labels.json
@@ -53,27 +54,28 @@ gmail-api-base/
 
 ## Architecture
 
-- `gmail_base/` contains reusable core modules.
-- `gmail_base/services/` contains reusable Gmail operations.
-- `gmail_base/planners/` contains plan loading, validation, and execution logic.
-- `scripts/` contains thin entry points.
-- `docs/` contains human-readable strategy and development docs.
-- `plans/` contains machine-readable execution inputs.
-- `output/` contains generated files.
-- Message updates use Gmail batch modify for migration efficiency.
-- Plans now include labels, migrations, rules, and cleanup.
-- Rules are generic query-driven automations.
-- Cleanup is a generic post-migration label hygiene phase.
+* `gmail_base/` contains reusable core modules.
+* `gmail_base/services/` contains reusable Gmail operations.
+* `gmail_base/planners/` contains plan loading, validation, and execution logic.
+* `scripts/` contains thin entry points.
+* `docs/` contains human-readable strategy and development docs.
+* `plans/` contains machine-readable execution inputs.
+* `output/` contains generated files.
+* Message updates use Gmail batch modify for migration efficiency.
+* Plans include labels, migrations, rules, and cleanup.
+* Rules are generic query-driven automations.
+* Cleanup is a safe post-migration label hygiene phase.
 
 ## Plan-Driven Approach
 
-- `docs/` explain the strategy and desired direction.
-- `plans/` define the executable desired state.
-- `scripts/` execute plans through reusable modules.
-- The current machine-readable plan format is JSON.
-- YAML may be added later without changing the overall architecture.
-- Rules plans let the project apply generic query-based Gmail automations.
-- Cleanup plans let the project safely remove legacy labels after replacements are already in place.
+* `docs/` explain the strategy and desired direction.
+* `plans/` define the executable desired state.
+* `scripts/` execute plans through reusable modules.
+* Plans are JSON-based (YAML may be added later).
+* Rules enable query-based automation.
+* Cleanup enables safe removal of legacy labels after migration.
+
+---
 
 ## Setup Overview
 
@@ -85,235 +87,103 @@ To run this project, you need to:
 4. Create OAuth credentials as a Desktop app
 5. Download `credentials.json` into the project root
 
-## How to get credentials.json
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable Gmail API
-4. Configure the OAuth consent screen
-5. Create OAuth credentials with application type `Desktop app`
-6. Download the JSON file, rename it to `credentials.json`, and place it in the project root
-
-Important:
-
-- The OAuth application type must be `Desktop app`.
-- If you see a Gmail API disabled error, enable Gmail API in the selected Google Cloud project.
-
-## Credential Files
-
-- `credentials.json` is downloaded manually from Google Cloud and placed in the project root. This matches `CREDENTIALS_FILE` in `gmail_base/config.py`.
-- `token.json` is generated automatically after the first successful authentication. This matches `TOKEN_FILE` in `gmail_base/config.py`.
-- `credentials.example.json` and `token.example.json` are reference files only.
-
-## OAuth Scope
-
-This project uses `https://www.googleapis.com/auth/gmail.modify`.
-
-If you change scopes:
-
-- delete `token.json`
-- run authentication again
-
-## Setup on Windows (Git Bash)
-
-You can run setup manually or use the helper scripts.
-
-### Manual setup
-
-```bash
-python -m venv .venv
-source .venv/Scripts/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
-### Manual run
-
-```bash
-python main.py
-```
-
-On first run:
-
-- the app prints a Google auth URL in the terminal
-- copy it into Chrome
-- sign in
-- allow access
-- Google redirects to `localhost`
-- return to terminal and wait
-
-After success:
-
-- `token.json` is created
-- future runs reuse it automatically
+---
 
 ## Running Scripts
 
-Run scripts directly:
+Run directly:
 
 ```bash
-python scripts/list_labels.py
-python scripts/export_labels.py
 python scripts/create_labels_from_plan.py
-python scripts/create_labels_from_plan.py plans/gmail_organization/labels.json
 python scripts/migrate_labels_from_plan.py
-python scripts/migrate_labels_from_plan.py plans/gmail_organization/migrations.json
-python scripts/migrate_labels_from_plan.py --apply
-python scripts/migrate_labels_from_plan.py plans/gmail_organization/migrations.json --apply
 python scripts/apply_rules_from_plan.py
-python scripts/apply_rules_from_plan.py --apply
-python scripts/apply_rules_from_plan.py --apply --verbose
-python scripts/apply_rules_from_plan.py plans/gmail_organization/rules.json --apply --verbose
 python scripts/cleanup_labels_from_plan.py
-python scripts/cleanup_labels_from_plan.py --apply
-python scripts/cleanup_labels_from_plan.py --apply --verbose
-python scripts/cleanup_labels_from_plan.py plans/gmail_organization/cleanup.json --apply --verbose
 ```
 
-Or use the helper runner:
+Or with helper:
 
 ```bash
-./run.sh scripts/list_labels.py
-./run.sh scripts/export_labels.py
-./run.sh scripts/create_labels_from_plan.py
-./run.sh scripts/create_labels_from_plan.py plans/gmail_organization/labels.json
-./run.sh scripts/migrate_labels_from_plan.py
-./run.sh scripts/migrate_labels_from_plan.py --apply
-./run.sh scripts/apply_rules_from_plan.py
-./run.sh scripts/apply_rules_from_plan.py --apply
 ./run.sh scripts/apply_rules_from_plan.py --apply --verbose
-./run.sh scripts/cleanup_labels_from_plan.py
-./run.sh scripts/cleanup_labels_from_plan.py --apply
-./run.sh scripts/cleanup_labels_from_plan.py --apply --verbose
 ```
 
-If no argument is passed, `./run.sh` still runs `python main.py`.
+---
 
-## Exported Files
+## Execution Model
 
-- Exported files go into `output/`.
-- The first feature exports Gmail label names to `output/labels.txt`.
+### Labels
 
-## Label Management
+* Creates missing labels
+* Idempotent
 
-Plan-based label creation:
+### Migration
 
-```bash
-python scripts/create_labels_from_plan.py
-python scripts/create_labels_from_plan.py plans/gmail_organization/labels.json
-```
+* Adds new labels
+* Does NOT remove old labels
 
-Or:
+### Rules
 
-```bash
-./run.sh scripts/create_labels_from_plan.py
-./run.sh scripts/create_labels_from_plan.py plans/gmail_organization/labels.json
-```
+* Query-based automation
+* Supports labeling and archiving
+* Archive = remove `INBOX`
 
-- The plan-driven script only creates missing labels.
-- It does not delete or modify existing labels.
-- It is safe to run multiple times.
+### Cleanup
 
-## Existing Label Scripts
+* Removes legacy labels
+* Requires replacement labels when configured
+* Never deletes emails
+* Never archives messages
 
-- `python scripts/list_labels.py` still lists labels.
-- `python scripts/export_labels.py` still exports labels to `output/labels.txt`.
-- Migration message updates use Gmail batch modify for better efficiency.
+---
 
-## Migration Plans
+## Safety Model
 
-- Migrations are defined in `plans/gmail_organization/migrations.json`.
-- Preview mode: `python scripts/migrate_labels_from_plan.py`
-- Apply mode: `python scripts/migrate_labels_from_plan.py --apply`
-- Custom path: `python scripts/migrate_labels_from_plan.py plans/gmail_organization/migrations.json`
-- Custom path with apply: `python scripts/migrate_labels_from_plan.py plans/gmail_organization/migrations.json --apply`
-- Equivalent `run.sh` preview: `./run.sh scripts/migrate_labels_from_plan.py`
-- Equivalent `run.sh` apply: `./run.sh scripts/migrate_labels_from_plan.py --apply`
-- Preview is the safe default.
-- Apply mode only adds new labels.
-- Old labels are not removed in Phase 2.
-- Migrations are executed in batches for better performance.
-- Long migrations may still take some time depending on Gmail API response time and mailbox size.
+* Preview mode is default
+* `--apply` required for execution
+* No destructive operations
+* Idempotent behavior across all flows
 
-## Rules Engine
+---
 
-- Rules are defined in `plans/gmail_organization/rules.json`.
-- Preview mode: `python scripts/apply_rules_from_plan.py`
-- Apply mode: `python scripts/apply_rules_from_plan.py --apply`
-- Verbose mode: `python scripts/apply_rules_from_plan.py --apply --verbose`
-- Custom path: `python scripts/apply_rules_from_plan.py plans/gmail_organization/rules.json`
-- Custom path with apply and verbose: `python scripts/apply_rules_from_plan.py plans/gmail_organization/rules.json --apply --verbose`
-- Equivalent `run.sh` preview: `./run.sh scripts/apply_rules_from_plan.py`
-- Equivalent `run.sh` apply: `./run.sh scripts/apply_rules_from_plan.py --apply`
-- Equivalent `run.sh` apply with verbose: `./run.sh scripts/apply_rules_from_plan.py --apply --verbose`
-- Preview is the safe default.
-- Rules can add labels and optionally archive matching messages.
-- Archive means removing the `INBOX` label, not deleting messages.
-- Rules are processed in batches for performance.
+## AI-Assisted Development
 
-## Cleanup Engine
+This project supports a structured AI workflow using Codex and reusable prompt files.
 
-- Cleanup rules are defined in `plans/gmail_organization/cleanup.json`.
-- Preview mode: `python scripts/cleanup_labels_from_plan.py`
-- Apply mode: `python scripts/cleanup_labels_from_plan.py --apply`
-- Verbose mode: `python scripts/cleanup_labels_from_plan.py --apply --verbose`
-- Custom plan path: `python scripts/cleanup_labels_from_plan.py plans/gmail_organization/cleanup.json`
-- Custom plan path with apply and verbose: `python scripts/cleanup_labels_from_plan.py plans/gmail_organization/cleanup.json --apply --verbose`
-- Equivalent `run.sh` preview: `./run.sh scripts/cleanup_labels_from_plan.py`
-- Equivalent `run.sh` apply: `./run.sh scripts/cleanup_labels_from_plan.py --apply`
-- Equivalent `run.sh` apply with verbose: `./run.sh scripts/cleanup_labels_from_plan.py --apply --verbose`
-- Preview is the safe default.
-- Cleanup only removes labels.
-- Cleanup never deletes messages.
-- Cleanup never archives messages.
-- Cleanup is intended to run only after migration and rules have already added the replacement labels.
-- Cleanup is processed in batches for performance.
+### Key components
 
-## Helper Scripts
+* `AGENTS.md` → repository-wide AI rules
+* `docs/development-plan.md` → roadmap and architecture
+* `.github/prompts/` → reusable task prompts
 
-- `setup_and_run.sh` handles first-time setup or reinstalling dependencies.
-- `run.sh` activates `.venv` and runs `main.py` by default or any passed Python script path.
-
-Example:
-
-```bash
-chmod +x run.sh setup_and_run.sh
-./setup_and_run.sh
-./run.sh
-./run.sh scripts/list_labels.py
-./run.sh scripts/export_labels.py
-./run.sh scripts/create_labels_from_plan.py
-./run.sh scripts/migrate_labels_from_plan.py
-./run.sh scripts/apply_rules_from_plan.py
-./run.sh scripts/cleanup_labels_from_plan.py
-```
-
-## Browser Behavior
-
-- The app does not automatically open a browser.
-- The auth URL is printed in the terminal.
-- You manually open it in Chrome.
-- Google redirects back to `localhost`.
-- This avoids changing default browser settings.
-
-## Expected Output
-
-Default auth check:
+### Example usage
 
 ```text
-Authentication successful.
-Signed in as: your-email@gmail.com
+/implement-next-phase
 ```
 
-Label export:
+### Creating new prompts
+
+* Keep prompts small
+* Do NOT duplicate architecture or plan
+* Reference:
+
+  * `AGENTS.md`
+  * `docs/development-plan.md`
+
+---
+
+## Detailed AI Workflow
+
+See full guide:
 
 ```text
-Exported labels to: output/labels.txt
+docs/ai-development-workflow.md
 ```
+
+---
 
 ## Important Notes
 
-- Do not commit `credentials.json`
-- Do not commit `token.json`
-- Keep both files local and private
-- If `token.json` becomes stale or scopes change, delete it and authenticate again
+* Do not commit `credentials.json`
+* Do not commit `token.json`
+* Keep both files local and private
+* If scopes change, delete `token.json` and re-authenticate
