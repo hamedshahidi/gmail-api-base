@@ -24,260 +24,130 @@ The project already supports:
 * helper runner scripts
 * listing labels
 * exporting labels
-* creating a planned label hierarchy
+* plan-driven label creation
+* Phase 2 migration execution
+* Phase 3 query-driven rules execution
+* Phase 4 plan-driven label cleanup
 
 Current weaknesses:
 
-* some scripts are task-specific
-* parts of the logic are hardcoded to the current Gmail organization plan
-* generated files must be managed carefully
-* the project needs a more explicit architecture for reusable automation
+* some scripts are still repetitive in structure
+* rules may reprocess already-handled emails unless queries avoid them
+* cleanup previews may be slower on larger mailboxes
+* reporting is useful but still basic
+* long-term optimization path is not yet formalized
 
 ---
 
 ## Target Architecture
 
-### 1. Core modules
+### Core modules
 
-`gmail_base/` should contain reusable code only.
-
-```text
 gmail_base/
-  config.py
-  auth.py
-  service.py
 
-  services/
-    label_service.py
-    label_management_service.py
-    message_service.py
-    search_service.py
+* services → reusable Gmail API operations
+* planners → plan loading, validation, execution
+* models → optional shared structures
 
-  planners/
-    __init__.py
-    plan_loader.py
-    plan_validator.py
-    label_plan_executor.py
-    migration_plan_executor.py
-
-  models/
-    __init__.py
-    plan_models.py
-```
-
-Principles:
-
-* `services/` = low-level reusable Gmail operations
-* `planners/` = plan loading, validation, and execution logic
-* `models/` = shared typed structures if needed later
-* no personal Gmail plan should be hardcoded inside reusable modules
+No business logic or personal rules inside reusable modules.
 
 ---
 
-### 2. Scripts
+### Scripts
 
-`scripts/` should remain thin entry points only.
-
-```text
 scripts/
-  list_labels.py
-  export_labels.py
-  create_labels_from_plan.py
-  validate_plan.py
-  migrate_labels_from_plan.py
-```
 
-Principles:
+Thin entry points only.
 
-* scripts call services/planners
-* scripts contain no business logic
-* scripts accept plan file paths
+* no business logic
+* call planners/services
+* accept plan paths
+* preview mode is default
 
 ---
 
-### 3. Plans
+### Plans
 
-Separate human intent from machine execution.
+docs → human-readable strategy
+plans → machine-readable execution
 
-#### Human-readable documentation
+plans/gmail_organization/
 
-```text
-docs/
-  gmail-organization-plan.md
-  development-plan.md
-```
-
-#### Machine-readable execution inputs
-
-```text
-plans/
-  gmail_organization/
-    labels.json
-    migrations.json
-    filters.json
-```
-
-Principles:
-
-* docs explain *why*
-* plans define *what*
-* code defines *how*
+* labels.json
+* migrations.json
+* rules.json
+* cleanup.json
 
 ---
 
 ## Design Principles
 
-1. Authentication stays generic
-2. Gmail operations stay generic
-3. Scripts remain thin
-4. Plans are data, not code
-5. Human-readable strategy and machine-readable inputs are separate
-6. Safe defaults:
-
-   * create before modify
-   * do not delete labels automatically
-   * do not remove old labels until verified
-7. Generated files go to `output/` and are ignored
-8. System should be idempotent
-
----
-
-## Input Format Strategy
-
-Use **JSON for now** (no external dependencies).
-Design in a way that allows switching to YAML later.
-
-### labels.json
-
-```json
-{
-  "labels": [
-    "Finance",
-    "Finance/Bank",
-    "Finance/Salary"
-  ]
-}
-```
-
-### migrations.json
-
-```json
-{
-  "migrations": [
-    {
-      "old_label": "visa",
-      "new_labels": ["Finance/Bank"]
-    }
-  ]
-}
-```
-
-### filters.json (future)
-
-```json
-{
-  "rules": [
-    {
-      "name": "receipts",
-      "query": "subject:(receipt OR kuitti)",
-      "actions": {
-        "add_labels": ["Finance/Receipts"],
-        "archive": false
-      }
-    }
-  ]
-}
-```
+* plan-driven system
+* safe by default (preview first)
+* idempotent operations
+* no destructive actions
+* separation of concerns
+* generic, reusable components
+* no hardcoded behavior
 
 ---
 
 ## Execution Model
 
-### Label creation
+### Labels
 
-Script:
-
-```
-scripts/create_labels_from_plan.py
-```
-
-Behavior:
-
-* load labels.json
-* validate
-* create missing labels
-* safe to re-run
+create missing labels from labels.json
+safe to rerun
 
 ---
 
 ### Migration
 
-Script:
-
-```
-scripts/migrate_labels_from_plan.py
-```
-
-Behavior:
-
-* load migrations.json
-* apply new labels
-* DO NOT remove old labels initially
+add new labels to messages
+do NOT remove old labels
+preview by default
 
 ---
 
-### Validation
+### Rules
 
-Script:
+query-based automation
 
-```
-scripts/validate_plan.py
-```
+supports:
 
-Behavior:
+* add_labels
+* archive (remove INBOX)
 
-* validate JSON structure
-* detect duplicates
-* check references
+rules are:
+
+* plan-driven
+* safe to rerun
+* preview-first
 
 ---
 
-## Required Project Changes
+### Cleanup
 
-### 1. Add planners package
+remove legacy labels safely
 
-* plan_loader.py
-* plan_validator.py
-* label_plan_executor.py
+rules:
 
-### 2. Move hardcoded data to JSON
+* only remove specified labels
+* require replacement labels when defined
+* never delete emails
+* never archive emails
+* preview-first
 
-* no label lists inside scripts
+---
 
-### 3. Replace task-specific script
+## Archiving (Important)
 
-* remove create_planned_labels.py
-* add create_labels_from_plan.py
+Archiving is a first-class feature:
 
-### 4. Keep generic scripts
-
-* list_labels.py
-* export_labels.py
-
-### 5. Update README
-
-Explain:
-
-* architecture
-* plans vs docs
-* how to run plan scripts
-
-### 6. Improve .gitignore
-
-```gitignore
-output/*
-!output/.gitkeep
-```
+* archive = remove INBOX label
+* must be explicitly defined in rules.json
+* never implicit
+* never part of cleanup or migration
 
 ---
 
@@ -285,62 +155,99 @@ output/*
 
 Must never:
 
-* commit credentials.json
-* commit token.json
-* commit exported Gmail data
+* delete emails
+* remove labels automatically without plan
+* commit credentials or sensitive data
 
-Must:
+Must always:
 
-* avoid destructive operations
-* avoid deleting labels automatically
-* avoid removing old labels prematurely
+* default to preview mode
+* require explicit apply
+* keep operations idempotent
+* separate cleanup from migration
 
 ---
 
 ## Implementation Phases
 
-### Phase 1 — Plan-driven label creation
+### Phase 1 — Labels
 
-* JSON label plan
-* loader + validator
-* generic script
-* README update
-
-### Phase 2 — Migration engine
-
-* migrations.json
-* migration executor
-* reporting
-
-### Phase 3 — Search & rules
-
-* search service
-* filter plan
-
-### Phase 4 — CLI (optional)
-
-* unify commands
+✅ complete
 
 ---
 
-## Immediate Next Step
+### Phase 2 — Migration
 
-Implement Phase 1:
+✅ complete
 
-* planners package
-* labels.json
-* generic label creation script
-* README update
+---
+
+### Phase 3 — Rules
+
+✅ complete
+
+* add labels
+* archive support
+* batch processing
+
+---
+
+### Phase 4 — Cleanup
+
+✅ complete
+
+* safe label removal
+* requires validation
+* batch processing
+
+---
+
+### Phase 5 — Rules Optimization
+
+Goal:
+avoid unnecessary reprocessing
+
+Approaches:
+
+* improve queries to skip already-processed emails
+* optional marker-label strategy
+* better reporting (matched vs eligible vs submitted)
+
+---
+
+### Phase 6 — Performance & Reporting
+
+* optimize metadata-heavy operations
+* improve logs and summaries
+* maintain same behavior with better efficiency
+
+---
+
+### Phase 7 — Orchestration
+
+* optional unified CLI
+* optional pipeline:
+  labels → migrations → rules → cleanup
+* still allow independent execution
+
+---
+
+### Phase 8 — Plan Evolution
+
+* optional YAML support
+* no breaking changes
+* keep plan-driven architecture
 
 ---
 
 ## Success Criteria
 
-Phase 1 is complete when:
-
-* no label data is hardcoded
-* labels are loaded from JSON
-* validation exists
-* script is reusable
-* README explains usage
-* secrets and outputs are not tracked
+* all phases run from JSON plans
+* preview is default everywhere
+* archive works as explicit rule action
+* cleanup only removes intended labels
+* scripts remain thin
+* services remain generic
+* system is safe to rerun
+* no secrets or generated data committed
+* new features extend plans, not scripts
