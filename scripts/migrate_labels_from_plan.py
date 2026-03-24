@@ -7,6 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from gmail_base.cli import parse_plan_execution_args
 from gmail_base.planners.migration_plan_executor import (
     apply_label_migrations,
     preview_label_migrations,
@@ -17,19 +18,10 @@ DEFAULT_PLAN_PATH = "plans/gmail_organization/migrations.json"
 
 def main() -> None:
     """Run label migration preview by default or apply changes with --apply."""
-    args = sys.argv[1:]
-
-    plan_path = DEFAULT_PLAN_PATH
-    apply_mode = False
-    verbose = False
-
-    for arg in args:
-        if arg == "--apply":
-            apply_mode = True
-        elif arg == "--verbose":
-            verbose = True
-        else:
-            plan_path = arg
+    execution_args = parse_plan_execution_args(sys.argv[1:], DEFAULT_PLAN_PATH)
+    plan_path = execution_args.plan_path
+    apply_mode = execution_args.apply_mode
+    verbose = execution_args.verbose
 
     if apply_mode:
         results = apply_label_migrations(plan_path, verbose=verbose)

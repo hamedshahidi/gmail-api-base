@@ -7,6 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from gmail_base.cli import parse_plan_execution_args
 from gmail_base.planners.rules_plan_executor import apply_rules, preview_rules
 
 DEFAULT_PLAN_PATH = "plans/gmail_organization/rules.json"
@@ -14,19 +15,10 @@ DEFAULT_PLAN_PATH = "plans/gmail_organization/rules.json"
 
 def main() -> None:
     """Run rules preview by default or apply rules when explicitly requested."""
-    args = sys.argv[1:]
-
-    plan_path = DEFAULT_PLAN_PATH
-    apply_mode = False
-    verbose = False
-
-    for arg in args:
-        if arg == "--apply":
-            apply_mode = True
-        elif arg == "--verbose":
-            verbose = True
-        else:
-            plan_path = arg
+    execution_args = parse_plan_execution_args(sys.argv[1:], DEFAULT_PLAN_PATH)
+    plan_path = execution_args.plan_path
+    apply_mode = execution_args.apply_mode
+    verbose = execution_args.verbose
 
     if apply_mode:
         print("Mode: APPLY")
