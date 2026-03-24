@@ -78,7 +78,14 @@ def get_messages_metadata(
 
         if chunk_errors:
             failed_message_ids = ", ".join(sorted(chunk_errors))
-            raise RuntimeError(f"Failed to fetch Gmail message metadata for: {failed_message_ids}")
+            error_details = "; ".join(
+                f"{message_id}: {chunk_errors[message_id]}"
+                for message_id in sorted(chunk_errors)
+            )
+            raise RuntimeError(
+                f"Failed to fetch Gmail message metadata for: {failed_message_ids}. "
+                f"Errors: {error_details}"
+            )
 
         for message_id in message_id_chunk:
             if message_id in chunk_results:
