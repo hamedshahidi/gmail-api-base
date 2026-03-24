@@ -231,6 +231,7 @@ Approaches:
 
 ### Phase 7 — Orchestration
 
+* initial step implemented: optional unified CLI runner for labels, migrations, rules, and cleanup
 * optional unified CLI
 * optional pipeline:
   labels → migrations → rules → cleanup

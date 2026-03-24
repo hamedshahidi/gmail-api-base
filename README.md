@@ -49,6 +49,7 @@ gmail-api-base/
     cleanup_labels_from_plan.py
     create_labels_from_plan.py
     migrate_labels_from_plan.py
+    run_gmail_organization.py
     list_labels.py
     export_labels.py
   output/
@@ -80,6 +81,7 @@ gmail-api-base/
 * Plans are JSON-based (YAML may be added later).
 * Rules enable query-based automation.
 * Cleanup enables safe removal of legacy labels after migration.
+* `scripts/run_gmail_organization.py` provides an optional unified entry point while preserving the independent scripts.
 
 ---
 
@@ -104,12 +106,28 @@ python scripts/create_labels_from_plan.py
 python scripts/migrate_labels_from_plan.py
 python scripts/apply_rules_from_plan.py
 python scripts/cleanup_labels_from_plan.py
+python scripts/run_gmail_organization.py rules
 ```
 
 Or with helper:
 
 ```bash
 ./run.sh scripts/apply_rules_from_plan.py --apply --verbose
+```
+
+Unified runner:
+
+```bash
+python scripts/run_gmail_organization.py labels
+python scripts/run_gmail_organization.py migrations --apply
+python scripts/run_gmail_organization.py rules --apply --verbose
+python scripts/run_gmail_organization.py cleanup
+```
+
+Or with helper:
+
+```bash
+./run.sh scripts/run_gmail_organization.py rules --apply --verbose
 ```
 
 ---
