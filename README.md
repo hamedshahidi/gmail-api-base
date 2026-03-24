@@ -124,6 +124,8 @@ python scripts/run_gmail_organization.py rules --apply --verbose
 python scripts/run_gmail_organization.py cleanup
 ```
 
+`labels` accepts only an optional plan path. `--apply` and `--verbose` apply only to `migrations`, `rules`, and `cleanup`.
+
 Or with helper:
 
 ```bash
