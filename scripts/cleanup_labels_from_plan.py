@@ -34,9 +34,11 @@ def main() -> None:
         results = apply_cleanup(plan_path, verbose=verbose)
         total_matched_messages = sum(result["matched_messages"] for result in results)
         total_eligible_messages = sum(result["eligible_messages"] for result in results)
+        total_skipped_messages = total_matched_messages - total_eligible_messages
         total_updated_messages = sum(result["updated_messages"] for result in results)
         for result in results:
             require_labels = ", ".join(result["require_labels"]) if result["require_labels"] else "(none)"
+            skipped_messages = result["matched_messages"] - result["eligible_messages"]
             print(f"Cleanup rule: {result['name']}")
             print(f"Query: {result['query']}")
             print(f"Remove labels: {', '.join(result['remove_labels'])}")
@@ -44,23 +46,27 @@ def main() -> None:
             print(f"Skip if missing labels: {result['skip_if_missing_labels']}")
             print(f"Matching messages: {result['matched_messages']}")
             print(f"Eligible messages: {result['eligible_messages']}")
+            print(f"Skipped messages: {skipped_messages}")
             print(f"Submitted messages: {result['updated_messages']}")
             print()
 
         print(f"Total cleanup rules: {len(results)}")
         print(f"Total matched messages: {total_matched_messages}")
         print(f"Total eligible messages: {total_eligible_messages}")
+        print(f"Total skipped messages: {total_skipped_messages}")
         print(f"Total submitted messages: {total_updated_messages}")
         return
 
     results = preview_cleanup(plan_path)
     total_matched_messages = sum(result["matched_messages"] for result in results)
     total_eligible_messages = sum(result["eligible_messages"] for result in results)
+    total_skipped_messages = total_matched_messages - total_eligible_messages
 
     print("Mode: PREVIEW")
     print()
     for result in results:
         require_labels = ", ".join(result["require_labels"]) if result["require_labels"] else "(none)"
+        skipped_messages = result["matched_messages"] - result["eligible_messages"]
         print(f"Cleanup rule: {result['name']}")
         print(f"Query: {result['query']}")
         print(f"Remove labels: {', '.join(result['remove_labels'])}")
@@ -68,12 +74,14 @@ def main() -> None:
         print(f"Skip if missing labels: {result['skip_if_missing_labels']}")
         print(f"Matching messages: {result['matched_messages']}")
         print(f"Eligible messages: {result['eligible_messages']}")
+        print(f"Skipped messages: {skipped_messages}")
         print()
 
     print(f"Total cleanup rules: {len(results)}")
     print(f"Total matched messages: {total_matched_messages}")
     print(f"Total eligible messages: {total_eligible_messages}")
-    print("Total updated messages: 0")
+    print(f"Total skipped messages: {total_skipped_messages}")
+    print("Total submitted messages: 0")
 
 
 if __name__ == "__main__":

@@ -122,14 +122,20 @@ def batch_modify_message_labels(
         if verbose:
             print(f"Processing batch of {len(message_id_chunk)} messages...", flush=True)
 
-        service.users().messages().batchModify(
-            userId="me",
-            body={
-                "ids": message_id_chunk,
-                "addLabelIds": add_label_ids,
-                "removeLabelIds": remove_label_ids,
-            },
-        ).execute()
+        try:
+            service.users().messages().batchModify(
+                userId="me",
+                body={
+                    "ids": message_id_chunk,
+                    "addLabelIds": add_label_ids,
+                    "removeLabelIds": remove_label_ids,
+                },
+            ).execute()
+        except Exception as exc:
+            chunk_message_ids = ", ".join(message_id_chunk)
+            raise RuntimeError(
+                f"Failed to modify Gmail message labels for: {chunk_message_ids}. Error: {exc}"
+            ) from exc
         updated_count += len(message_id_chunk)
 
     return updated_count
