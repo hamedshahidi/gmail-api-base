@@ -12,6 +12,7 @@ SCRIPT_PATHS = {
     "rules": Path(__file__).resolve().parent / "apply_rules_from_plan.py",
     "cleanup": Path(__file__).resolve().parent / "cleanup_labels_from_plan.py",
 }
+PIPELINE_COMMANDS = ("labels", "migrations", "rules", "cleanup")
 
 
 def main() -> None:
@@ -22,6 +23,11 @@ def main() -> None:
 
     command = args[0]
     forwarded_args = args[1:]
+
+    if command == "pipeline":
+        _validate_pipeline_args(forwarded_args)
+        _run_pipeline(forwarded_args)
+        return
 
     if command not in SCRIPT_PATHS:
         _raise_usage_error(f"Unknown command: {command}")
@@ -49,6 +55,51 @@ def _validate_labels_args(args: list[str]) -> None:
         )
 
 
+def _validate_pipeline_args(args: list[str]) -> None:
+    """Reject unsupported positional arguments for the pipeline command."""
+    positional_args = [arg for arg in args if not arg.startswith("--")]
+    if positional_args:
+        args_text = ", ".join(positional_args)
+        raise SystemExit(
+            f"pipeline does not support positional arguments: {args_text}\n"
+            f"{_usage_text()}"
+        )
+
+    unsupported_flags = [arg for arg in args if arg not in {"--apply", "--verbose"}]
+    if unsupported_flags:
+        flags_text = ", ".join(unsupported_flags)
+        raise SystemExit(
+            f"pipeline does not support these flags: {flags_text}\n"
+            f"{_usage_text()}"
+        )
+
+
+def _run_pipeline(args: list[str]) -> None:
+    """Run the full labels-to-cleanup pipeline using default plan paths."""
+    apply_mode = "--apply" in args
+    modifying_args = [arg for arg in args if arg in {"--apply", "--verbose"}]
+
+    print("Pipeline: labels -> migrations -> rules -> cleanup")
+    print()
+
+    for command in PIPELINE_COMMANDS:
+        if command == "labels" and not apply_mode:
+            print("=== LABELS ===")
+            print("Skipping labels in preview pipeline mode. Use --apply to include label creation.")
+            print()
+            continue
+
+        forwarded_args = [] if command == "labels" else modifying_args
+        _run_pipeline_step(command, forwarded_args)
+
+
+def _run_pipeline_step(command: str, forwarded_args: list[str]) -> None:
+    """Execute a single named pipeline step."""
+    print(f"=== {command.upper()} ===")
+    _run_script(SCRIPT_PATHS[command], forwarded_args)
+    print()
+
+
 def _run_script(script_path: Path, forwarded_args: list[str]) -> None:
     """Execute an existing script with forwarded command-line arguments."""
     original_argv = sys.argv[:]
@@ -68,8 +119,10 @@ def _usage_text() -> str:
     """Return the unified CLI usage text."""
     return (
         "Usage: python scripts/run_gmail_organization.py "
-        "<labels|migrations|rules|cleanup> [plan_path] [--apply] [--verbose]\n"
-        "Note: --apply and --verbose apply only to migrations, rules, and cleanup."
+        "<labels|migrations|rules|cleanup|pipeline> [plan_path] [--apply] [--verbose]\n"
+        "Note: labels accepts only an optional plan path. "
+        "pipeline accepts only --apply and --verbose, uses default plan paths, "
+        "and skips labels unless --apply is provided."
     )
 
 
