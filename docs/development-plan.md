@@ -247,6 +247,7 @@ Approaches:
 
 * initial step implemented: optional extension-based plan loading for `.json`, `.yaml`, and `.yml`
 * YAML support is optional and requires PyYAML when YAML plan files are used
+* YAML path has been validated in practical usage and examples for labels, rules, and cleanup
 * optional YAML support
 * no breaking changes
 * keep plan-driven architecture

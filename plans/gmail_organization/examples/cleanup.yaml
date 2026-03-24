@@ -1,0 +1,8 @@
+cleanup_rules:
+  - name: remove-old-visa-label
+    query: label:"Travel/Documents"
+    remove_labels:
+      - visa
+    require_labels:
+      - Travel/Documents
+    skip_if_missing_labels: true

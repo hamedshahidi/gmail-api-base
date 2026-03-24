@@ -1,0 +1,4 @@
+migrations:
+  - old_label: visa
+    new_labels:
+      - Travel/Documents

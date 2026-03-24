@@ -1,0 +1,14 @@
+rules:
+  - name: subscriptions-promotions
+    query: category:promotions
+    actions:
+      add_labels:
+        - Subscriptions/Promotions
+      archive: true
+
+  - name: travel-documents
+    query: label:"visa"
+    actions:
+      add_labels:
+        - Travel/Documents
+      archive: false
