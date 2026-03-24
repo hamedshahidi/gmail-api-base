@@ -46,14 +46,14 @@ def main() -> None:
             print(f"Archive: {result['archive']}")
             print(f"Matching messages: {result['match_count']}")
             print(f"Eligible messages: {result['eligible_count']}")
-            print(f"Updated messages: {result['updated_count']}")
+            print(f"Submitted messages: {result['updated_count']}")
             print(f"Archived messages: {result['archived_count']}")
             print()
 
         print(f"Total rules: {len(results)}")
         print(f"Total matched messages: {total_matched_messages}")
         print(f"Total eligible messages: {total_eligible_messages}")
-        print(f"Total updated messages: {total_updated_messages}")
+        print(f"Total submitted messages: {total_updated_messages}")
         print(f"Total archived messages: {total_archived_messages}")
         return
 
@@ -78,7 +78,7 @@ def main() -> None:
     print(f"Total rules: {len(results)}")
     print(f"Total matched messages: {total_matched_messages}")
     print(f"Total eligible messages: {total_eligible_messages}")
-    print("Total updated messages: 0")
+    print("Total submitted messages: 0")
     print("Total archived messages: 0")
 
 
