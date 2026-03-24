@@ -1,0 +1,16 @@
+{
+  "migrations": [
+    {
+      "old_label": "visa",
+      "new_labels": ["Travel/Documents"]
+    },
+    {
+      "old_label": "Kuitti",
+      "new_labels": ["Finance/Receipts"]
+    },
+    {
+      "old_label": "Wine&Food",
+      "new_labels": ["Subscriptions/Newsletters"]
+    }
+  ]
+}

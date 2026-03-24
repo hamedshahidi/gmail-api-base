@@ -1,0 +1,28 @@
+{
+  "rules": [
+    {
+      "name": "label-receipts",
+      "query": "subject:(receipt OR kuitti)",
+      "actions": {
+        "add_labels": ["Finance/Receipts"],
+        "archive": false
+      }
+    },
+    {
+      "name": "archive-newsletters",
+      "query": "label:\"Subscriptions/Newsletters\" in:inbox",
+      "actions": {
+        "archive": true
+      }
+    },
+    {
+      "name": "label-travel-documents-once",
+      "query": "label:\"visa\"",
+      "exclude_labels": ["Travel/Documents"],
+      "actions": {
+        "add_labels": ["Travel/Documents"],
+        "archive": false
+      }
+    }
+  ]
+}

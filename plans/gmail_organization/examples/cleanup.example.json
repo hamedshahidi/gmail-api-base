@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "cleanup_rules": [
+    {
+      "name": "remove-legacy-visa-label",
+      "query": "label:\"Travel/Documents\" label:\"visa\"",
+      "remove_labels": ["visa"],
+      "require_labels": ["Travel/Documents"],
+      "skip_if_missing_labels": true
+    },
+    {
+      "name": "remove-kuitti-after-migration",
+      "query": "label:\"Finance/Receipts\" label:\"Kuitti\"",
+      "remove_labels": ["Kuitti"],
+      "require_labels": ["Finance/Receipts"],
+      "skip_if_missing_labels": true
+    }
+  ]
+}

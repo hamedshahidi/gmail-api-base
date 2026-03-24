@@ -39,6 +39,11 @@ gmail-api-base/
       migrations.json
       rules.json
       cleanup.json
+      examples/
+        labels.example.json
+        migrations.example.json
+        rules.example.json
+        cleanup.example.json
   scripts/
     apply_rules_from_plan.py
     cleanup_labels_from_plan.py
@@ -70,6 +75,7 @@ gmail-api-base/
 
 * `docs/` explain the strategy and desired direction.
 * `plans/` define the executable desired state.
+* `plans/gmail_organization/examples/` contains non-executable example plan files for onboarding and future development.
 * `scripts/` execute plans through reusable modules.
 * Plans are JSON-based (YAML may be added later).
 * Rules enable query-based automation.
