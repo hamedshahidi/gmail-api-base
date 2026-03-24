@@ -23,8 +23,10 @@ def preview_rules(plan_path: str) -> list[dict]:
         actions = rule["actions"]
         add_labels = actions["add_labels"]
         archive = actions["archive"]
-        matched_message_ids = search_message_ids(query)
-        eligible_message_ids = search_message_ids(_build_eligible_query(query, exclude_labels))
+        matched_message_ids, eligible_message_ids = _get_matched_and_eligible_message_ids(
+            query,
+            exclude_labels,
+        )
         results.append(
             {
                 "name": name,
@@ -55,8 +57,10 @@ def apply_rules(plan_path: str, verbose: bool = False) -> list[dict]:
         archive = actions["archive"]
         _validate_rule_labels(name, add_labels, exclude_labels, label_name_to_id)
 
-        matched_message_ids = search_message_ids(query)
-        eligible_message_ids = search_message_ids(_build_eligible_query(query, exclude_labels))
+        matched_message_ids, eligible_message_ids = _get_matched_and_eligible_message_ids(
+            query,
+            exclude_labels,
+        )
         label_ids = [label_name_to_id[label_name] for label_name in add_labels]
         updated_count = 0
         archived_count = 0
@@ -89,6 +93,20 @@ def apply_rules(plan_path: str, verbose: bool = False) -> list[dict]:
         )
 
     return results
+
+
+def _get_matched_and_eligible_message_ids(
+    query: str,
+    exclude_labels: list[str],
+) -> tuple[list[str], list[str]]:
+    """Return matched and eligible message IDs for a rule query."""
+    matched_message_ids = search_message_ids(query)
+
+    if not exclude_labels:
+        return matched_message_ids, matched_message_ids
+
+    eligible_message_ids = search_message_ids(_build_eligible_query(query, exclude_labels))
+    return matched_message_ids, eligible_message_ids
 
 
 def _build_eligible_query(query: str, exclude_labels: list[str]) -> str:
