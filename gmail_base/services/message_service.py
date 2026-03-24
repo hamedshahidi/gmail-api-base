@@ -2,9 +2,82 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from googleapiclient.errors import HttpError
 
 from gmail_base.service import get_gmail_service
+
+
+def _fetch_message_metadata_with_retry(
+    message_id: str,
+    metadata_headers: list[str] | None = None,
+    max_retries: int = 5,
+    base_delay: float = 0.5,
+) -> dict:
+    """
+    Fetch a single message's metadata with retry logic for rate limit errors.
+    
+    Detects HTTP 429 (rateLimitExceeded) and retries with exponential backoff.
+    On persistent failure, raises RuntimeError with the message ID.
+    
+    Args:
+        message_id: Gmail message ID to fetch
+        metadata_headers: Optional list of metadata headers to include
+        max_retries: Number of retry attempts (default: 5)
+        base_delay: Initial delay in seconds before retry (default: 0.5)
+    
+    Returns:
+        Message metadata dictionary
+    
+    Raises:
+        RuntimeError: If all retries are exhausted
+    """
+    service = get_gmail_service()
+    metadata_headers = metadata_headers or []
+    attempt = 0
+    
+    while attempt <= max_retries:
+        try:
+            response = service.users().messages().get(
+                userId="me",
+                id=message_id,
+                format="metadata",
+                metadataHeaders=metadata_headers,
+            ).execute()
+            return response
+        except HttpError as exc:
+            # Check for rate limit error (429)
+            if exc.resp.status == 429:
+                if attempt < max_retries:
+                    # Exponential backoff with small jitter
+                    delay = base_delay * (2 ** attempt)
+                    time.sleep(delay)
+                    attempt += 1
+                    continue
+                else:
+                    # All retries exhausted
+                    raise RuntimeError(
+                        f"Failed to fetch metadata for message {message_id} after {max_retries} retries. "
+                        f"Rate limit exceeded. Last error: {exc}"
+                    ) from exc
+            else:
+                # Non-rate-limit errors fail immediately
+                raise RuntimeError(
+                    f"Failed to fetch metadata for message {message_id}. "
+                    f"Error: {exc}"
+                ) from exc
+        except Exception as exc:
+            # Unexpected errors fail immediately
+            raise RuntimeError(
+                f"Failed to fetch metadata for message {message_id}. "
+                f"Unexpected error: {exc}"
+            ) from exc
+    
+    # Should not reach here, but raise if it does
+    raise RuntimeError(f"Failed to fetch metadata for message {message_id}. Unknown error.")
 
 
 def chunk_list(items: list[str], size: int) -> Iterator[list[str]]:
@@ -44,53 +117,82 @@ def get_messages_metadata(
     metadata_headers: list[str] | None = None,
     batch_size: int = 100,
 ) -> list[dict]:
-    """Return Gmail message metadata for the provided message IDs."""
+    """
+    Return Gmail message metadata for the provided message IDs.
+    
+    Uses bounded concurrency to avoid overwhelming the Gmail API.
+    Implements retry logic with exponential backoff for rate limit errors.
+    
+    Args:
+        message_ids: List of Gmail message IDs to fetch
+        metadata_headers: Optional list of metadata headers to include
+        batch_size: Number of messages to fetch per concurrent batch (default: 100)
+    
+    Returns:
+        List of message metadata dictionaries in the order of input message IDs
+    
+    Raises:
+        RuntimeError: If any message fetch fails after retries
+    """
     if not message_ids:
         return []
 
-    service = get_gmail_service()
-    messages_metadata: list[dict] = []
     metadata_headers = metadata_headers or []
-
-    for message_id_chunk in chunk_list(message_ids, batch_size):
+    messages_metadata: list[dict] = []
+    
+    # Use bounded concurrency to avoid rate limits
+    # max_workers=10 gives us 10 concurrent requests at a time
+    max_workers = 10
+    inter_chunk_delay = 0.5  # Small delay between chunks to avoid bursts
+    
+    # Process messages in chunks with concurrency control
+    for chunk_num, message_id_chunk in enumerate(chunk_list(message_ids, batch_size)):
+        # Add small delay between chunks (except for the first chunk)
+        if chunk_num > 0:
+            time.sleep(inter_chunk_delay)
+        
+        # Use thread pool for this chunk with bounded concurrency
         chunk_results: dict[str, dict] = {}
-        chunk_errors: dict[str, Exception] = {}
-
-        def handle_response(request_id: str, response: dict, exception: Exception | None) -> None:
-            if exception is not None:
-                chunk_errors[request_id] = exception
-                return
-
-            chunk_results[request_id] = response
-
-        batch_request = service.new_batch_http_request(callback=handle_response)
-
-        for message_id in message_id_chunk:
-            request = service.users().messages().get(
-                userId="me",
-                id=message_id,
-                format="metadata",
-                metadataHeaders=metadata_headers,
-            )
-            batch_request.add(request, request_id=message_id)
-
-        batch_request.execute()
-
-        if chunk_errors:
-            failed_message_ids = ", ".join(sorted(chunk_errors))
+        chunk_failures: dict[str, RuntimeError] = {}
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all fetch tasks for this chunk
+            future_to_message_id = {
+                executor.submit(
+                    _fetch_message_metadata_with_retry,
+                    msg_id,
+                    metadata_headers,
+                ): msg_id
+                for msg_id in message_id_chunk
+            }
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_message_id):
+                message_id = future_to_message_id[future]
+                try:
+                    metadata = future.result()
+                    chunk_results[message_id] = metadata
+                except RuntimeError as exc:
+                    chunk_failures[message_id] = exc
+        
+        # Check for any failures in this chunk
+        if chunk_failures:
+            failed_message_ids = ", ".join(sorted(chunk_failures.keys()))
             error_details = "; ".join(
-                f"{message_id}: {chunk_errors[message_id]}"
-                for message_id in sorted(chunk_errors)
+                f"{msg_id}: {chunk_failures[msg_id]}"
+                for msg_id in sorted(chunk_failures)
             )
             raise RuntimeError(
-                f"Failed to fetch Gmail message metadata for: {failed_message_ids}. "
-                f"Errors: {error_details}"
+                f"Failed to fetch Gmail message metadata for {len(chunk_failures)} "
+                f"message(s) in chunk: {failed_message_ids}. "
+                f"Details: {error_details}"
             )
-
+        
+        # Append results in the order of the input chunk
         for message_id in message_id_chunk:
             if message_id in chunk_results:
                 messages_metadata.append(chunk_results[message_id])
-
+    
     return messages_metadata
 
 
