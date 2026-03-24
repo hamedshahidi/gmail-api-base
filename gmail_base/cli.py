@@ -14,6 +14,11 @@ class PlanExecutionArgs:
     verbose: bool
 
 
+def parse_optional_plan_path(args: list[str], default_plan_path: str) -> str:
+    """Return the first positional plan path argument or the default plan path."""
+    return args[0] if args else default_plan_path
+
+
 def parse_plan_execution_args(args: list[str], default_plan_path: str) -> PlanExecutionArgs:
     """Parse common plan-path, apply, and verbose flags for thin scripts."""
     plan_path = default_plan_path
