@@ -39,6 +39,29 @@ def search_message_ids(query: str) -> list[str]:
     return message_ids
 
 
+def get_messages_metadata(
+    message_ids: list[str],
+    metadata_headers: list[str] | None = None,
+) -> list[dict]:
+    """Return Gmail message metadata for the provided message IDs."""
+    if not message_ids:
+        return []
+
+    service = get_gmail_service()
+    messages_metadata: list[dict] = []
+
+    for message_id in message_ids:
+        request = service.users().messages().get(
+            userId="me",
+            id=message_id,
+            format="metadata",
+            metadataHeaders=metadata_headers or [],
+        )
+        messages_metadata.append(request.execute())
+
+    return messages_metadata
+
+
 def get_label_name_to_id_map() -> dict[str, str]:
     """Return a mapping of Gmail label names to label IDs."""
     service = get_gmail_service()
@@ -47,18 +70,21 @@ def get_label_name_to_id_map() -> dict[str, str]:
     return {label["name"]: label["id"] for label in labels if "name" in label and "id" in label}
 
 
-def add_labels_to_messages(
+def batch_modify_message_labels(
     message_ids: list[str],
-    label_ids: list[str],
+    add_label_ids: list[str] | None = None,
+    remove_label_ids: list[str] | None = None,
     batch_size: int = 1000,
     verbose: bool = False,
 ) -> int:
-    """Add the provided labels to messages in batches and return the number submitted."""
+    """Modify Gmail message labels in batches and return the number submitted."""
     if not message_ids:
         return 0
 
     service = get_gmail_service()
     updated_count = 0
+    add_label_ids = add_label_ids or []
+    remove_label_ids = remove_label_ids or []
 
     for message_id_chunk in chunk_list(message_ids, batch_size):
         if verbose:
@@ -68,12 +94,28 @@ def add_labels_to_messages(
             userId="me",
             body={
                 "ids": message_id_chunk,
-                "addLabelIds": label_ids,
+                "addLabelIds": add_label_ids,
+                "removeLabelIds": remove_label_ids,
             },
         ).execute()
         updated_count += len(message_id_chunk)
 
     return updated_count
+
+
+def add_labels_to_messages(
+    message_ids: list[str],
+    label_ids: list[str],
+    batch_size: int = 1000,
+    verbose: bool = False,
+) -> int:
+    """Add the provided labels to messages in batches and return the number submitted."""
+    return batch_modify_message_labels(
+        message_ids,
+        add_label_ids=label_ids,
+        batch_size=batch_size,
+        verbose=verbose,
+    )
 
 
 def archive_messages(
@@ -82,23 +124,9 @@ def archive_messages(
     verbose: bool = False,
 ) -> int:
     """Archive messages in batches by removing only the INBOX label."""
-    if not message_ids:
-        return 0
-
-    service = get_gmail_service()
-    archived_count = 0
-
-    for message_id_chunk in chunk_list(message_ids, batch_size):
-        if verbose:
-            print(f"Processing archive batch of {len(message_id_chunk)} messages...", flush=True)
-
-        service.users().messages().batchModify(
-            userId="me",
-            body={
-                "ids": message_id_chunk,
-                "removeLabelIds": ["INBOX"],
-            },
-        ).execute()
-        archived_count += len(message_id_chunk)
-
-    return archived_count
+    return batch_modify_message_labels(
+        message_ids,
+        remove_label_ids=["INBOX"],
+        batch_size=batch_size,
+        verbose=verbose,
+    )

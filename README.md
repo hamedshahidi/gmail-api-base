@@ -24,6 +24,7 @@ gmail-api-base/
       label_plan_executor.py
       migration_plan_executor.py
       rules_plan_executor.py
+      cleanup_plan_executor.py
     services/
       label_management_service.py
       label_service.py
@@ -36,8 +37,10 @@ gmail-api-base/
       labels.json
       migrations.json
       rules.json
+      cleanup.json
   scripts/
     apply_rules_from_plan.py
+    cleanup_labels_from_plan.py
     create_labels_from_plan.py
     migrate_labels_from_plan.py
     list_labels.py
@@ -58,8 +61,9 @@ gmail-api-base/
 - `plans/` contains machine-readable execution inputs.
 - `output/` contains generated files.
 - Message updates use Gmail batch modify for migration efficiency.
-- Plans now include labels, migrations, and rules.
+- Plans now include labels, migrations, rules, and cleanup.
 - Rules are generic query-driven automations.
+- Cleanup is a generic post-migration label hygiene phase.
 
 ## Plan-Driven Approach
 
@@ -69,6 +73,7 @@ gmail-api-base/
 - The current machine-readable plan format is JSON.
 - YAML may be added later without changing the overall architecture.
 - Rules plans let the project apply generic query-based Gmail automations.
+- Cleanup plans let the project safely remove legacy labels after replacements are already in place.
 
 ## Setup Overview
 
@@ -159,6 +164,10 @@ python scripts/apply_rules_from_plan.py
 python scripts/apply_rules_from_plan.py --apply
 python scripts/apply_rules_from_plan.py --apply --verbose
 python scripts/apply_rules_from_plan.py plans/gmail_organization/rules.json --apply --verbose
+python scripts/cleanup_labels_from_plan.py
+python scripts/cleanup_labels_from_plan.py --apply
+python scripts/cleanup_labels_from_plan.py --apply --verbose
+python scripts/cleanup_labels_from_plan.py plans/gmail_organization/cleanup.json --apply --verbose
 ```
 
 Or use the helper runner:
@@ -173,6 +182,9 @@ Or use the helper runner:
 ./run.sh scripts/apply_rules_from_plan.py
 ./run.sh scripts/apply_rules_from_plan.py --apply
 ./run.sh scripts/apply_rules_from_plan.py --apply --verbose
+./run.sh scripts/cleanup_labels_from_plan.py
+./run.sh scripts/cleanup_labels_from_plan.py --apply
+./run.sh scripts/cleanup_labels_from_plan.py --apply --verbose
 ```
 
 If no argument is passed, `./run.sh` still runs `python main.py`.
@@ -239,6 +251,24 @@ Or:
 - Archive means removing the `INBOX` label, not deleting messages.
 - Rules are processed in batches for performance.
 
+## Cleanup Engine
+
+- Cleanup rules are defined in `plans/gmail_organization/cleanup.json`.
+- Preview mode: `python scripts/cleanup_labels_from_plan.py`
+- Apply mode: `python scripts/cleanup_labels_from_plan.py --apply`
+- Verbose mode: `python scripts/cleanup_labels_from_plan.py --apply --verbose`
+- Custom plan path: `python scripts/cleanup_labels_from_plan.py plans/gmail_organization/cleanup.json`
+- Custom plan path with apply and verbose: `python scripts/cleanup_labels_from_plan.py plans/gmail_organization/cleanup.json --apply --verbose`
+- Equivalent `run.sh` preview: `./run.sh scripts/cleanup_labels_from_plan.py`
+- Equivalent `run.sh` apply: `./run.sh scripts/cleanup_labels_from_plan.py --apply`
+- Equivalent `run.sh` apply with verbose: `./run.sh scripts/cleanup_labels_from_plan.py --apply --verbose`
+- Preview is the safe default.
+- Cleanup only removes labels.
+- Cleanup never deletes messages.
+- Cleanup never archives messages.
+- Cleanup is intended to run only after migration and rules have already added the replacement labels.
+- Cleanup is processed in batches for performance.
+
 ## Helper Scripts
 
 - `setup_and_run.sh` handles first-time setup or reinstalling dependencies.
@@ -255,6 +285,7 @@ chmod +x run.sh setup_and_run.sh
 ./run.sh scripts/create_labels_from_plan.py
 ./run.sh scripts/migrate_labels_from_plan.py
 ./run.sh scripts/apply_rules_from_plan.py
+./run.sh scripts/cleanup_labels_from_plan.py
 ```
 
 ## Browser Behavior
