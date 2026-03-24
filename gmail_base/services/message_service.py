@@ -42,6 +42,7 @@ def search_message_ids(query: str) -> list[str]:
 def get_messages_metadata(
     message_ids: list[str],
     metadata_headers: list[str] | None = None,
+    batch_size: int = 100,
 ) -> list[dict]:
     """Return Gmail message metadata for the provided message IDs."""
     if not message_ids:
@@ -49,15 +50,39 @@ def get_messages_metadata(
 
     service = get_gmail_service()
     messages_metadata: list[dict] = []
+    metadata_headers = metadata_headers or []
 
-    for message_id in message_ids:
-        request = service.users().messages().get(
-            userId="me",
-            id=message_id,
-            format="metadata",
-            metadataHeaders=metadata_headers or [],
-        )
-        messages_metadata.append(request.execute())
+    for message_id_chunk in chunk_list(message_ids, batch_size):
+        chunk_results: dict[str, dict] = {}
+        chunk_errors: dict[str, Exception] = {}
+
+        def handle_response(request_id: str, response: dict, exception: Exception | None) -> None:
+            if exception is not None:
+                chunk_errors[request_id] = exception
+                return
+
+            chunk_results[request_id] = response
+
+        batch_request = service.new_batch_http_request(callback=handle_response)
+
+        for message_id in message_id_chunk:
+            request = service.users().messages().get(
+                userId="me",
+                id=message_id,
+                format="metadata",
+                metadataHeaders=metadata_headers,
+            )
+            batch_request.add(request, request_id=message_id)
+
+        batch_request.execute()
+
+        if chunk_errors:
+            failed_message_ids = ", ".join(sorted(chunk_errors))
+            raise RuntimeError(f"Failed to fetch Gmail message metadata for: {failed_message_ids}")
+
+        for message_id in message_id_chunk:
+            if message_id in chunk_results:
+                messages_metadata.append(chunk_results[message_id])
 
     return messages_metadata
 
