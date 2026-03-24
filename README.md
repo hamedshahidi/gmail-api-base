@@ -78,7 +78,7 @@ gmail-api-base/
 * `plans/` define the executable desired state.
 * `plans/gmail_organization/examples/` contains non-executable example plan files for onboarding and future development.
 * `scripts/` execute plans through reusable modules.
-* Plans are JSON-based (YAML may be added later).
+* Plans are JSON-based by default, with optional YAML plan loading for `.yaml` / `.yml` files when `PyYAML` is installed.
 * Rules enable query-based automation.
 * Cleanup enables safe removal of legacy labels after migration.
 * `scripts/run_gmail_organization.py` provides an optional unified entry point while preserving the independent scripts.

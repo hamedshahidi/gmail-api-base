@@ -245,6 +245,8 @@ Approaches:
 
 ### Phase 8 — Plan Evolution
 
+* initial step implemented: optional extension-based plan loading for `.json`, `.yaml`, and `.yml`
+* YAML support is optional and requires PyYAML when YAML plan files are used
 * optional YAML support
 * no breaking changes
 * keep plan-driven architecture
