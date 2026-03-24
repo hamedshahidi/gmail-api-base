@@ -78,6 +78,7 @@ def _run_pipeline(args: list[str]) -> None:
     """Run the full labels-to-cleanup pipeline using default plan paths."""
     apply_mode = "--apply" in args
     modifying_args = [arg for arg in args if arg in {"--apply", "--verbose"}]
+    labels_executed = False
 
     print("Pipeline: labels -> migrations -> rules -> cleanup")
     print()
@@ -90,7 +91,11 @@ def _run_pipeline(args: list[str]) -> None:
             continue
 
         forwarded_args = [] if command == "labels" else modifying_args
+        if command == "labels":
+            labels_executed = True
         _run_pipeline_step(command, forwarded_args)
+
+    _print_pipeline_summary(labels_executed, apply_mode)
 
 
 def _run_pipeline_step(command: str, forwarded_args: list[str]) -> None:
@@ -98,6 +103,16 @@ def _run_pipeline_step(command: str, forwarded_args: list[str]) -> None:
     print(f"=== {command.upper()} ===")
     _run_script(SCRIPT_PATHS[command], forwarded_args)
     print()
+
+
+def _print_pipeline_summary(labels_executed: bool, apply_mode: bool) -> None:
+    """Print a short summary after the pipeline completes."""
+    labels_status = "executed" if labels_executed else "skipped"
+    pipeline_mode = "APPLY" if apply_mode else "PREVIEW"
+
+    print("Pipeline complete.")
+    print(f"Pipeline mode: {pipeline_mode}")
+    print(f"Labels step: {labels_status}")
 
 
 def _run_script(script_path: Path, forwarded_args: list[str]) -> None:
