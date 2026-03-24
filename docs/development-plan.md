@@ -231,8 +231,11 @@ Approaches:
 
 ### Phase 7 — Orchestration
 
+✅ complete
+
 * initial step implemented: optional unified CLI runner for labels, migrations, rules, and cleanup
 * initial step implemented: optional pipeline runner using default plan paths for labels → migrations → rules → cleanup, with labels skipped unless apply is explicit
+* initial step implemented: optional pipeline plan-directory override for running the orchestration flow against a different plan set
 * optional unified CLI
 * optional pipeline:
   labels → migrations → rules → cleanup

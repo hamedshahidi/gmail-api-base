@@ -6,6 +6,7 @@ import runpy
 import sys
 from pathlib import Path
 
+DEFAULT_PLAN_DIRECTORY = Path("plans/gmail_organization")
 SCRIPT_PATHS = {
     "labels": Path(__file__).resolve().parent / "create_labels_from_plan.py",
     "migrations": Path(__file__).resolve().parent / "migrate_labels_from_plan.py",
@@ -13,6 +14,12 @@ SCRIPT_PATHS = {
     "cleanup": Path(__file__).resolve().parent / "cleanup_labels_from_plan.py",
 }
 PIPELINE_COMMANDS = ("labels", "migrations", "rules", "cleanup")
+PIPELINE_PLAN_FILES = {
+    "labels": "labels.json",
+    "migrations": "migrations.json",
+    "rules": "rules.json",
+    "cleanup": "cleanup.json",
+}
 
 
 def main() -> None:
@@ -57,7 +64,7 @@ def _validate_labels_args(args: list[str]) -> None:
 
 def _validate_pipeline_args(args: list[str]) -> None:
     """Reject unsupported positional arguments for the pipeline command."""
-    positional_args = [arg for arg in args if not arg.startswith("--")]
+    positional_args = _pipeline_positional_args(args)
     if positional_args:
         args_text = ", ".join(positional_args)
         raise SystemExit(
@@ -65,7 +72,7 @@ def _validate_pipeline_args(args: list[str]) -> None:
             f"{_usage_text()}"
         )
 
-    unsupported_flags = [arg for arg in args if arg not in {"--apply", "--verbose"}]
+    unsupported_flags = _pipeline_unsupported_flags(args)
     if unsupported_flags:
         flags_text = ", ".join(unsupported_flags)
         raise SystemExit(
@@ -76,11 +83,13 @@ def _validate_pipeline_args(args: list[str]) -> None:
 
 def _run_pipeline(args: list[str]) -> None:
     """Run the full labels-to-cleanup pipeline using default plan paths."""
+    plan_directory = _get_pipeline_plan_directory(args)
     apply_mode = "--apply" in args
     modifying_args = [arg for arg in args if arg in {"--apply", "--verbose"}]
     labels_executed = False
 
     print("Pipeline: labels -> migrations -> rules -> cleanup")
+    print(f"Plan directory: {plan_directory}")
     print()
 
     for command in PIPELINE_COMMANDS:
@@ -90,7 +99,8 @@ def _run_pipeline(args: list[str]) -> None:
             print()
             continue
 
-        forwarded_args = [] if command == "labels" else modifying_args
+        plan_path = plan_directory / PIPELINE_PLAN_FILES[command]
+        forwarded_args = [str(plan_path)] if command == "labels" else [str(plan_path), *modifying_args]
         if command == "labels":
             labels_executed = True
         _run_pipeline_step(command, forwarded_args)
@@ -115,6 +125,63 @@ def _print_pipeline_summary(labels_executed: bool, apply_mode: bool) -> None:
     print(f"Labels step: {labels_status}")
 
 
+def _get_pipeline_plan_directory(args: list[str]) -> Path:
+    """Return the requested pipeline plan directory or the default directory."""
+    for index, arg in enumerate(args):
+        if arg == "--plan-dir":
+            return Path(args[index + 1])
+
+    return DEFAULT_PLAN_DIRECTORY
+
+
+def _pipeline_positional_args(args: list[str]) -> list[str]:
+    """Return positional pipeline arguments after accounting for flag values."""
+    positional_args: list[str] = []
+    skip_next = False
+
+    for arg in args:
+        if skip_next:
+            skip_next = False
+            continue
+
+        if arg == "--plan-dir":
+            skip_next = True
+            continue
+
+        if not arg.startswith("--"):
+            positional_args.append(arg)
+
+    return positional_args
+
+
+def _pipeline_unsupported_flags(args: list[str]) -> list[str]:
+    """Return unsupported pipeline flags, including missing --plan-dir values."""
+    unsupported_flags: list[str] = []
+    index = 0
+
+    while index < len(args):
+        arg = args[index]
+        if arg in {"--apply", "--verbose"}:
+            index += 1
+            continue
+
+        if arg == "--plan-dir":
+            if index + 1 >= len(args) or args[index + 1].startswith("--"):
+                unsupported_flags.append("--plan-dir")
+                index += 1
+                continue
+
+            index += 2
+            continue
+
+        if arg.startswith("--"):
+            unsupported_flags.append(arg)
+
+        index += 1
+
+    return unsupported_flags
+
+
 def _run_script(script_path: Path, forwarded_args: list[str]) -> None:
     """Execute an existing script with forwarded command-line arguments."""
     original_argv = sys.argv[:]
@@ -134,9 +201,9 @@ def _usage_text() -> str:
     """Return the unified CLI usage text."""
     return (
         "Usage: python scripts/run_gmail_organization.py "
-        "<labels|migrations|rules|cleanup|pipeline> [plan_path] [--apply] [--verbose]\n"
+        "<labels|migrations|rules|cleanup|pipeline> [plan_path] [--apply] [--verbose] [--plan-dir PATH]\n"
         "Note: labels accepts only an optional plan path. "
-        "pipeline accepts only --apply and --verbose, uses default plan paths, "
+        "pipeline accepts only --apply, --verbose, and --plan-dir, uses default plan paths unless overridden, "
         "and skips labels unless --apply is provided."
     )
 

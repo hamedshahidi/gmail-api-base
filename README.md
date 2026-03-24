@@ -124,15 +124,17 @@ python scripts/run_gmail_organization.py rules --apply --verbose
 python scripts/run_gmail_organization.py cleanup
 python scripts/run_gmail_organization.py pipeline
 python scripts/run_gmail_organization.py pipeline --apply --verbose
+python scripts/run_gmail_organization.py pipeline --plan-dir plans/gmail_organization/examples
 ```
 
-`labels` accepts only an optional plan path. `--apply` and `--verbose` apply only to `migrations`, `rules`, `cleanup`, and `pipeline`. `pipeline` uses the default plan paths and runs `labels -> migrations -> rules -> cleanup`, but it skips `labels` unless `--apply` is provided so preview mode stays safe.
+`labels` accepts only an optional plan path. `--apply` and `--verbose` apply only to `migrations`, `rules`, `cleanup`, and `pipeline`. `pipeline` uses the default plan paths unless `--plan-dir` is provided, runs `labels -> migrations -> rules -> cleanup`, and skips `labels` unless `--apply` is provided so preview mode stays safe.
 
 Or with helper:
 
 ```bash
 ./run.sh scripts/run_gmail_organization.py rules --apply --verbose
 ./run.sh scripts/run_gmail_organization.py pipeline --apply --verbose
+./run.sh scripts/run_gmail_organization.py pipeline --plan-dir plans/gmail_organization/examples
 ```
 
 ---
