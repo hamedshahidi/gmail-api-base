@@ -26,13 +26,12 @@ def main() -> None:
         results = apply_rules(plan_path, verbose=verbose)
         total_matched_messages = sum(result["match_count"] for result in results)
         total_eligible_messages = sum(result["eligible_count"] for result in results)
-        total_skipped_messages = total_matched_messages - total_eligible_messages
+        total_skipped_messages = sum(result["skipped_count"] for result in results)
         total_updated_messages = sum(result["updated_count"] for result in results)
         total_archived_messages = sum(result["archived_count"] for result in results)
         for result in results:
             add_labels = ", ".join(result["add_labels"]) if result["add_labels"] else "(none)"
             exclude_labels = ", ".join(result["exclude_labels"]) if result["exclude_labels"] else "(none)"
-            skipped_messages = result["match_count"] - result["eligible_count"]
             print(f"Rule: {result['name']}")
             print(f"Query: {result['query']}")
             print(f"Add labels: {add_labels}")
@@ -40,7 +39,7 @@ def main() -> None:
             print(f"Archive: {result['archive']}")
             print(f"Matching messages: {result['match_count']}")
             print(f"Eligible messages: {result['eligible_count']}")
-            print(f"Skipped messages: {skipped_messages}")
+            print(f"Skipped messages: {result['skipped_count']}")
             print(f"Submitted messages: {result['updated_count']}")
             print(f"Archived messages: {result['archived_count']}")
             print()
@@ -56,14 +55,13 @@ def main() -> None:
     results = preview_rules(plan_path)
     total_matched_messages = sum(result["match_count"] for result in results)
     total_eligible_messages = sum(result["eligible_count"] for result in results)
-    total_skipped_messages = total_matched_messages - total_eligible_messages
+    total_skipped_messages = sum(result["skipped_count"] for result in results)
 
     print("Mode: PREVIEW")
     print()
     for result in results:
         add_labels = ", ".join(result["add_labels"]) if result["add_labels"] else "(none)"
         exclude_labels = ", ".join(result["exclude_labels"]) if result["exclude_labels"] else "(none)"
-        skipped_messages = result["match_count"] - result["eligible_count"]
         print(f"Rule: {result['name']}")
         print(f"Query: {result['query']}")
         print(f"Add labels: {add_labels}")
@@ -71,7 +69,7 @@ def main() -> None:
         print(f"Archive: {result['archive']}")
         print(f"Matching messages: {result['match_count']}")
         print(f"Eligible messages: {result['eligible_count']}")
-        print(f"Skipped messages: {skipped_messages}")
+        print(f"Skipped messages: {result['skipped_count']}")
         print()
 
     print(f"Total rules: {len(results)}")

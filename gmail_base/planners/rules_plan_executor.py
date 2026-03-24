@@ -27,6 +27,7 @@ def preview_rules(plan_path: str) -> list[dict]:
             query,
             exclude_labels,
         )
+        skipped_count = len(matched_message_ids) - len(eligible_message_ids)
         results.append(
             {
                 "name": name,
@@ -36,6 +37,7 @@ def preview_rules(plan_path: str) -> list[dict]:
                 "archive": archive,
                 "match_count": len(matched_message_ids),
                 "eligible_count": len(eligible_message_ids),
+                "skipped_count": skipped_count,
             }
         )
 
@@ -61,6 +63,7 @@ def apply_rules(plan_path: str, verbose: bool = False) -> list[dict]:
             query,
             exclude_labels,
         )
+        skipped_count = len(matched_message_ids) - len(eligible_message_ids)
         label_ids = [label_name_to_id[label_name] for label_name in add_labels]
         updated_count = 0
         archived_count = 0
@@ -87,6 +90,7 @@ def apply_rules(plan_path: str, verbose: bool = False) -> list[dict]:
                 "archive": archive,
                 "match_count": len(matched_message_ids),
                 "eligible_count": len(eligible_message_ids),
+                "skipped_count": skipped_count,
                 "updated_count": updated_count,
                 "archived_count": archived_count,
             }

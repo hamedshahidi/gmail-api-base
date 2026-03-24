@@ -74,6 +74,7 @@ def _build_cleanup_result(cleanup_rule: dict, label_name_to_id: dict[str, str]) 
         "skip_if_missing_labels": skip_if_missing_labels,
         "matched_messages": len(matched_message_ids),
         "eligible_messages": len(eligible_message_ids),
+        "skipped_messages": len(matched_message_ids) - len(eligible_message_ids),
         "eligible_message_ids": eligible_message_ids,
         "remove_label_ids": [label_name_to_id[label_name] for label_name in remove_labels],
     }
