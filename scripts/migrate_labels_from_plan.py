@@ -24,23 +24,22 @@ def main() -> None:
     verbose = execution_args.verbose
 
     if apply_mode:
-        results = apply_label_migrations(plan_path, verbose=verbose)
-        total_matched_messages = sum(result["match_count"] for result in results)
-        total_updated_messages = sum(result["updated_count"] for result in results)
-
         print("Mode: APPLY")
         print()
+        results = apply_label_migrations(plan_path, verbose=verbose)
+        total_matched_messages = sum(result["match_count"] for result in results)
+        total_submitted_messages = sum(result["updated_count"] for result in results)
         for result in results:
             new_labels = ", ".join(result["new_labels"])
             print(f"Old label: {result['old_label']}")
             print(f"New labels: {new_labels}")
             print(f"Matching messages: {result['match_count']}")
-            print(f"Updated messages: {result['updated_count']}")
-            print()
+            print(f"Submitted messages: {result['updated_count']}")
+        print()
 
         print(f"Total migrations: {len(results)}")
         print(f"Total matched messages: {total_matched_messages}")
-        print(f"Total updated messages: {total_updated_messages}")
+        print(f"Total submitted messages: {total_submitted_messages}")
         return
 
     results = preview_label_migrations(plan_path)
@@ -57,6 +56,7 @@ def main() -> None:
 
     print(f"Total migrations: {len(results)}")
     print(f"Total matched messages: {total_matched_messages}")
+    print("Total submitted messages: 0")
 
 
 if __name__ == "__main__":
