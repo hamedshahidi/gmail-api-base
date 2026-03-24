@@ -116,6 +116,7 @@ query-based automation
 supports:
 
 * add_labels
+* root-level eligibility filtering such as exclude_labels
 * archive (remove INBOX)
 
 rules are:
@@ -210,6 +211,7 @@ avoid unnecessary reprocessing
 Approaches:
 
 * improve queries to skip already-processed emails
+* initial step implemented: optional `exclude_labels`
 * optional marker-label strategy
 * better reporting (matched vs eligible vs submitted)
 

@@ -19,15 +19,21 @@ def preview_rules(plan_path: str) -> list[dict]:
     for rule in rules:
         name = rule["name"]
         query = rule["query"]
+        exclude_labels = rule["exclude_labels"]
         actions = rule["actions"]
-        message_ids = search_message_ids(query)
+        add_labels = actions["add_labels"]
+        archive = actions["archive"]
+        matched_message_ids = search_message_ids(query)
+        eligible_message_ids = search_message_ids(_build_eligible_query(query, exclude_labels))
         results.append(
             {
                 "name": name,
                 "query": query,
-                "add_labels": actions["add_labels"],
-                "archive": actions["archive"],
-                "match_count": len(message_ids),
+                "add_labels": add_labels,
+                "exclude_labels": exclude_labels,
+                "archive": archive,
+                "match_count": len(matched_message_ids),
+                "eligible_count": len(eligible_message_ids),
             }
         )
 
@@ -43,30 +49,28 @@ def apply_rules(plan_path: str, verbose: bool = False) -> list[dict]:
     for rule in rules:
         name = rule["name"]
         query = rule["query"]
+        exclude_labels = rule["exclude_labels"]
         actions = rule["actions"]
         add_labels = actions["add_labels"]
         archive = actions["archive"]
-        missing_labels = [label_name for label_name in add_labels if label_name not in label_name_to_id]
+        _validate_rule_labels(name, add_labels, exclude_labels, label_name_to_id)
 
-        if missing_labels:
-            missing_labels_text = ", ".join(missing_labels)
-            raise ValueError(f"Rule '{name}' references missing Gmail labels: {missing_labels_text}")
-
-        message_ids = search_message_ids(query)
+        matched_message_ids = search_message_ids(query)
+        eligible_message_ids = search_message_ids(_build_eligible_query(query, exclude_labels))
         label_ids = [label_name_to_id[label_name] for label_name in add_labels]
         updated_count = 0
         archived_count = 0
 
         if label_ids:
             updated_count = add_labels_to_messages(
-                message_ids,
+                eligible_message_ids,
                 label_ids,
                 verbose=verbose,
             )
 
         if archive:
             archived_count = archive_messages(
-                message_ids,
+                eligible_message_ids,
                 verbose=verbose,
             )
 
@@ -75,11 +79,44 @@ def apply_rules(plan_path: str, verbose: bool = False) -> list[dict]:
                 "name": name,
                 "query": query,
                 "add_labels": add_labels,
+                "exclude_labels": exclude_labels,
                 "archive": archive,
-                "match_count": len(message_ids),
+                "match_count": len(matched_message_ids),
+                "eligible_count": len(eligible_message_ids),
                 "updated_count": updated_count,
                 "archived_count": archived_count,
             }
         )
 
     return results
+
+
+def _build_eligible_query(query: str, exclude_labels: list[str]) -> str:
+    """Return the Gmail query used to exclude already-handled messages."""
+    if not exclude_labels:
+        return query
+
+    exclusion_query = " ".join(f'-label:"{label_name}"' for label_name in exclude_labels)
+    return f"{query} {exclusion_query}"
+
+
+def _validate_rule_labels(
+    rule_name: str,
+    add_labels: list[str],
+    exclude_labels: list[str],
+    label_name_to_id: dict[str, str],
+) -> None:
+    """Raise a clear error if a rule references missing Gmail labels."""
+    missing_add_labels = [label_name for label_name in add_labels if label_name not in label_name_to_id]
+    if missing_add_labels:
+        missing_labels_text = ", ".join(missing_add_labels)
+        raise ValueError(f"Rule '{rule_name}' references missing Gmail add_labels: {missing_labels_text}")
+
+    missing_exclude_labels = [
+        label_name for label_name in exclude_labels if label_name not in label_name_to_id
+    ]
+    if missing_exclude_labels:
+        missing_labels_text = ", ".join(missing_exclude_labels)
+        raise ValueError(
+            f"Rule '{rule_name}' references missing Gmail exclude_labels: {missing_labels_text}"
+        )

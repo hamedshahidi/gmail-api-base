@@ -124,7 +124,24 @@ Or with helper:
 
 * Query-based automation
 * Supports labeling and archiving
+* Optional `exclude_labels` helps skip already-handled messages
+* Reports matched messages and eligible messages after exclusions
+* `exclude_labels` belongs at the rule root, not inside `actions`
 * Archive = remove `INBOX`
+
+Example:
+
+```json
+{
+  "name": "example-exclude-already-labeled-receipts",
+  "query": "label:\"Kuitti\"",
+  "exclude_labels": ["Finance/Receipts"],
+  "actions": {
+    "add_labels": ["Finance/Receipts"],
+    "archive": false
+  }
+}
+```
 
 ### Cleanup
 

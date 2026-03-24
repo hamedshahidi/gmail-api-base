@@ -161,6 +161,20 @@ def validate_rules_plan_data(data: dict) -> list[dict]:
 
                 add_labels.append(cleaned_label_name)
 
+        raw_exclude_labels = rule.get("exclude_labels")
+        legacy_exclude_labels = actions.get("exclude_labels")
+
+        if raw_exclude_labels is not None and legacy_exclude_labels is not None:
+            raise ValueError(
+                f"Rule '{cleaned_name}' must define 'exclude_labels' only once. "
+                "Use the rule root field instead of actions.exclude_labels."
+            )
+
+        exclude_labels = _clean_optional_label_list(
+            raw_exclude_labels if raw_exclude_labels is not None else legacy_exclude_labels,
+            f"Rule exclude_labels for '{cleaned_name}'",
+        )
+
         if "archive" in actions:
             archive = actions["archive"]
             if not isinstance(archive, bool):
@@ -174,6 +188,7 @@ def validate_rules_plan_data(data: dict) -> list[dict]:
             {
                 "name": cleaned_name,
                 "query": cleaned_query,
+                "exclude_labels": exclude_labels,
                 "actions": {
                     "add_labels": add_labels,
                     "archive": archive,
@@ -277,3 +292,14 @@ def _clean_label_list(values: list, field_name: str) -> list[str]:
         cleaned_values.append(cleaned_value)
 
     return cleaned_values
+
+
+def _clean_optional_label_list(values: object, field_name: str) -> list[str]:
+    """Validate and normalize an optional list of label names."""
+    if values is None:
+        return []
+
+    if not isinstance(values, list):
+        raise ValueError(f"{field_name} must be a list.")
+
+    return _clean_label_list(values, field_name)
